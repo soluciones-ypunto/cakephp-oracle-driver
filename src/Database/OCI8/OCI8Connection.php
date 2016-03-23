@@ -54,9 +54,9 @@ class OCI8Connection extends PDO
      */
     public function __construct($dsn, $username, $password, $options)
     {
-        $persistent = !empty($option['persistent']);
-        $charset = !empty($option['charset']) ? $option['charset'] : null;
-        $sessionMode = !empty($option['sessionMode']) ? $option['sessionMode'] : null;
+        $persistent = !empty($options['persistent']);
+        $charset = !empty($options['charset']) ? $options['charset'] : null;
+        $sessionMode = !empty($options['sessionMode']) ? $options['sessionMode'] : null;
 
         if ($persistent) {
             $this->dbh = @oci_pconnect($username, $password, $dsn, $charset, $sessionMode);
