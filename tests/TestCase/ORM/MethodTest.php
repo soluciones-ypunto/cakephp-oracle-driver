@@ -24,8 +24,14 @@ class MethodTest extends TestCase
 {
 
     public $codeFixtures = ['plugin.CakeDC/OracleDriver.Calc'];
-	
-    public function testMethodCall() {
+
+    /**
+     * Method call test
+     *
+     * @return void
+     */
+    public function testMethodCall()
+    {
         $method = MethodRegistry::get('CalcSum', ['method' => 'CALC.SUM']);
         $request = $method->newRequest(['A' => 5, 'B' => 10]);
         $this->assertTrue($request->isNew());
@@ -33,5 +39,23 @@ class MethodTest extends TestCase
         $this->assertFalse($request->isNew());
         $this->assertEquals($request[':result'], 15);
         $this->assertEquals($request->result(), 15);
+    }
+
+    /**
+     * Output parameter method call test
+     *
+     * @return void
+     */
+    public function testOutParameterMethodCall()
+    {
+        $method = MethodRegistry::get('CalcTwice', ['method' => 'CALC.TWICE']);
+        $request = $method->newRequest(['A' => 5]);
+        $this->assertTrue($request->isNew());
+        $this->assertTrue($method->execute($request));
+        $this->assertFalse($request->isNew());
+
+        $this->assertEquals($request->get('B'), 10);
+        $this->assertEquals($request[':result'], 'OK');
+        $this->assertEquals($request->result(), 'OK');
     }
 }
