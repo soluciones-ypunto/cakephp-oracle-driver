@@ -464,13 +464,13 @@ WHERE 1=1 " . ($useOwner ? $ownerCondition : '') . $objectCondition . " ORDER BY
             (
                 SELECT i.index_type
                 FROM   $indexesTable i
-                WHERE  i.index_name = ic.index_name" . ($useOwner ? 'AND ic.table_owner = i.table_owner' : '') . "
+                WHERE  i.index_name = ic.index_name" . ($useOwner ? ' AND ic.table_owner = i.table_owner' : '') . "
             ) AS type,
             decode(
                 (
                      SELECT i.uniqueness
                      FROM   $indexesTable i
-                     WHERE  i.index_name = ic.index_name" . ($useOwner ? 'AND ic.table_owner = i.table_owner' : '') . "
+                     WHERE  i.index_name = ic.index_name" . ($useOwner ? ' AND ic.table_owner = i.table_owner' : '') . "
                 ),
                 'NONUNIQUE', 0,
                 'UNIQUE', 1
@@ -480,10 +480,10 @@ WHERE 1=1 " . ($useOwner ? $ownerCondition : '') . $objectCondition . " ORDER BY
             (
                 SELECT c.constraint_type
                 FROM   $constraintsTable c
-                WHERE  c.constraint_name = ic.index_name" . ($useOwner ? 'AND c.owner = i.table_owner' : '') . "
+                WHERE  c.constraint_name = ic.index_name" . ($useOwner ? ' AND c.owner = ic.index_owner' : '') . "
              ) AS is_primary
              FROM $indexColumnsTable ic
-             WHERE upper(ic.table_name) = :tableParam" . ($useOwner ? 'AND ic.table_owner = :ownerParam' : '') . "
+             WHERE upper(ic.table_name) = :tableParam" . ($useOwner ? ' AND ic.table_owner = :ownerParam' : '') . "
             ORDER BY ic.column_position ASC";
 
         $params = [
