@@ -612,10 +612,10 @@ WHERE 1=1 " . ($useOwner ? $ownerCondition : '') . $objectCondition . " ORDER BY
         $row = array_change_key_case($row);
         $data = [
             'type' => Table::CONSTRAINT_FOREIGN,
-            'columns' => strtoupper($row['column_name']),
+            'columns' => strtolower($row['column_name']),
             'references' => [
                 $row['referenced_owner'] . '.' . $row['referenced_table_name'],
-                strtoupper($row['referenced_column_name'])
+                strtolower($row['referenced_column_name'])
             ],
             'update' => Table::ACTION_SET_NULL,
             'delete' => $this->_convertOnClause($row['delete_rule']),
