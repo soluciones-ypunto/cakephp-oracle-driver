@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpInconsistentReturnPointsInspection */
 /**
  * Copyright 2015 - 2016, Cake Development Corporation (http://cakedc.com)
  *
@@ -8,15 +8,20 @@
  * @copyright Copyright 2015 - 2016, Cake Development Corporation (http://cakedc.com)
  * @license MIT License (http://www.opensource.org/licenses/mit-license.php)
  */
+/** @noinspection PhpInternalEntityUsedInspection */
 
 namespace CakeDC\OracleDriver\Database\Statement;
 
+use Cake\Database\Driver;
 use Cake\Database\Statement\BufferedStatement;
 use Cake\Database\Statement\BufferResultsTrait;
 use Cake\Database\Statement\StatementDecorator;
+use CakeDC\OracleDriver\Database\Driver\OracleBase;
 
 /**
  * Statement class meant to be used by an Oracle driver
+ *
+ * @property OracleBase|Driver|null $_driver
  */
 class OracleStatement extends StatementDecorator
 {
@@ -97,6 +102,23 @@ class OracleStatement extends StatementDecorator
     {
         $result = $this->_statement->fetch($type);
         if (is_array($result)) {
+
+            //Revert shortened identifiers to original name
+            if ($type == 'assoc' && !empty($this->_driver->autoShortenedIdentifiers)) {
+                //Need to preserve order of row results
+                $translatedRow = [];
+
+                foreach ($result as $key => $value) {
+                    if (array_key_exists($key, $this->_driver->autoShortenedIdentifiers)) {
+                        $translatedRow[$this->_driver->autoShortenedIdentifiers[$key]] = $value;
+                    } else {
+                        $translatedRow[$key] = $value;
+                    }
+                }
+
+                $result = $translatedRow;
+            }
+
             foreach ($result as $key => &$value) {
                 if (is_resource($value)) {
                     $value = stream_get_contents($value);

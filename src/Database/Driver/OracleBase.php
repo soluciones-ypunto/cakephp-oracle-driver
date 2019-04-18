@@ -11,25 +11,23 @@
 
 namespace CakeDC\OracleDriver\Database\Driver;
 
+use Cake\Database\Driver;
+use Cake\Database\Query;
+use Cake\Database\Statement\PDOStatement;
+use Cake\Database\StatementInterface;
 use CakeDC\OracleDriver\Config\ConfigTrait;
 use CakeDC\OracleDriver\Database\Dialect\OracleDialectTrait;
 use CakeDC\OracleDriver\Database\Statement\OracleStatement;
-use Cake\Database\Driver;
-use Cake\Database\Driver\PDODriverTrait;
-use Cake\Database\Statement\PDOStatement;
-use Cake\Database\Type;
-use Cake\Log\Log;
-use Cake\Network\Exception\NotImplementedException;
 use PDO;
+use PDOException;
 
 abstract class OracleBase extends Driver
 {
     use ConfigTrait;
     use OracleDialectTrait;
-    use PDODriverTrait;
 
     /**
-     * Base configuration settings for MySQL driver
+     * Base configuration settings for Oracle driver
      *
      * @var array
      */
@@ -48,6 +46,11 @@ abstract class OracleBase extends Driver
     ];
 
     protected $_defaultConfig = [];
+
+    /**
+     * @var bool
+     */
+    protected $connected;
 
     /**
      * Establishes a connection to the database server
@@ -76,8 +79,8 @@ abstract class OracleBase extends Driver
 
         if (!empty($config['init'])) {
             foreach ((array)$config['init'] as $command) {
-                $this->connection()
-                     ->exec($command);
+                $this->getConnection()
+                    ->exec($command);
             }
         }
         return true;
@@ -132,15 +135,15 @@ abstract class OracleBase extends Driver
     /**
      * Prepares a sql statement to be executed
      *
-     * @param string|\Cake\Database\Query $query The query to convert into a statement.
-     * @return \Cake\Database\StatementInterface
+     * @param string|Query $query The query to convert into a statement.
+     *
+     * @return StatementInterface
      */
     public function prepare($query)
     {
         $this->connect();
-        $isObject = ($query instanceof \Cake\ORM\Query) || ($query instanceof \Cake\Database\Query);
+        $isObject = ($query instanceof \Cake\ORM\Query) || ($query instanceof Query);
         $queryStringRaw = $isObject ? $query->sql() : $query;
-        Log::write('debug', $queryStringRaw);
         // debug($queryStringRaw);
         $queryString = $this->_fromDualIfy($queryStringRaw);
         list($queryString, $paramMap) = self::convertPositionalToNamedPlaceholders($queryString);
@@ -156,8 +159,8 @@ abstract class OracleBase extends Driver
             $disableBuffer = true;
         }
 
-        if ($isObject && $query->isBufferedResultsEnabled() === false || $disableBuffer) {
-            $statement->enableBufferedResults(false);
+        if (($isObject && $query->isBufferedResultsEnabled() === false) || $disableBuffer) {
+            $statement->bufferResults(false);
         }
         return $statement;
     }
@@ -192,7 +195,7 @@ abstract class OracleBase extends Driver
      *
      * @param string $query The SQL statement to convert.
      *
-     * @return string
+     * @return array
      */
     public function convertPositionalToNamedPlaceholders($query)
     {
@@ -223,6 +226,7 @@ abstract class OracleBase extends Driver
     {
         $sequenceName = 'seq_' . strtolower($table);
         $this->connect();
+        /** @noinspection SqlNoDataSourceInspection */
         $statement = $this->_connection->query("SELECT {$sequenceName}.CURRVAL FROM DUAL");
         $statement->execute();
         $result = $statement->fetch();
@@ -238,8 +242,10 @@ abstract class OracleBase extends Driver
             $connected = false;
         } else {
             try {
+                /** @noinspection SqlNoDataSourceInspection */
+                /** @noinspection SqlDialectInspection */
                 $connected = $this->_connection->query('SELECT 1 FROM DUAL');
-            } catch (\PDOException $e) {
+            } catch (PDOException $e) {
                 $connected = false;
             }
         }
@@ -255,7 +261,7 @@ abstract class OracleBase extends Driver
      */
     public function quoteIfAutoQuote($identifier)
     {
-        if ($this->autoQuoting()) {
+        if ($this->isAutoQuotingEnabled()) {
             return $this->quoteIdentifier($identifier);
         }
         return $identifier;
@@ -264,7 +270,7 @@ abstract class OracleBase extends Driver
     /**
      * Wrap statement into cakephp statements to provide additional functionality.
      *
-     * @param Statement $statement Original statement to wrap.
+     * @param \PDOStatement $statement Original statement to wrap.
      * @return OracleStatement
      */
     protected function _wrapStatement($statement)
@@ -287,11 +293,7 @@ abstract class OracleBase extends Driver
      *
      * @param string $queryString The PL/SQL to convert into a prepared statement.
      * @param array $options Statement options.
-     * @return \Cake\Database\StatementInterface
+     * @return StatementInterface
      */
-    public function prepareMethod($queryString, $options = [])
-    {
-        throw new NotImplementedException(__('method not implemented for this driver'));
-    }
-
+    abstract public function prepareMethod($queryString, $options = []);
 }

@@ -11,20 +11,22 @@
 
 namespace CakeDC\OracleDriver\Database\OCI8;
 
+use ArrayIterator;
+use IteratorAggregate;
 use PDO;
 use PDOStatement;
-use IteratorAggregate;
+use ReflectionClass;
+use ReflectionException;
 
 /**
  * The OCI8 implementation of the Statement interface.
  */
-class OCI8Statement extends \PDOStatement implements \IteratorAggregate
+class OCI8Statement extends PDOStatement implements IteratorAggregate
 {
 
     /**
      * @var bool
      */
-
     protected $_returnLobs = true;
 
     /**
@@ -124,7 +126,7 @@ class OCI8Statement extends \PDOStatement implements \IteratorAggregate
      *
      * @param string $statement The SQL statement to convert.
      *
-     * @return string
+     * @return array
      */
     static public function convertPositionalToNamedPlaceholders($statement)
     {
@@ -168,11 +170,11 @@ class OCI8Statement extends \PDOStatement implements \IteratorAggregate
         // where $type = ['ociType' => "REAL_OCI_TYPE", 'plsql_type' => 'VARRAY', 'php_type' => 'string']
         // this way we could choose correct type and correct binding function like oci_bind_array_by_name
 
-        if ($type == \PDO::PARAM_STMT) {
+        if ($type == PDO::PARAM_STMT) {
             $variable = oci_new_cursor($this->_dbh);
             return oci_bind_by_name($this->_sth, $column, $variable, -1, OCI_B_CURSOR);
 
-        } elseif ($type == \PDO::PARAM_LOB) {
+        } elseif ($type == PDO::PARAM_LOB) {
             $lob = oci_new_descriptor($this->_dbh, OCI_D_LOB);
             $lob->writeTemporary($variable, OCI_TEMP_BLOB);
 
@@ -256,16 +258,18 @@ class OCI8Statement extends \PDOStatement implements \IteratorAggregate
 
     /**
      * {@inheritdoc}
+     * @throws ReflectionException
      */
     public function getIterator()
     {
         $data = $this->fetchAll();
 
-        return new \ArrayIterator($data);
+        return new ArrayIterator($data);
     }
 
     /**
      * {@inheritdoc}
+     * @throws ReflectionException
      */
     public function fetch($fetchMode = null, $orientation = null, $offset = null)
     {
@@ -295,7 +299,7 @@ class OCI8Statement extends \PDOStatement implements \IteratorAggregate
                 return $rs;
 
             case PDO::FETCH_ASSOC:
-                $rs = oci_fetch_assoc($this->_sth);
+                $rs = @oci_fetch_assoc($this->_sth);
                 if ($rs === false) {
                     return false;
                 }
@@ -370,7 +374,7 @@ class OCI8Statement extends \PDOStatement implements \IteratorAggregate
                     }
 
                     if ($arguments) {
-                        $reflectionClass = new \ReflectionClass($className);
+                        $reflectionClass = new ReflectionClass($className);
                         $object = $reflectionClass->newInstanceArgs($arguments);
                     } else {
                         $object = new $className();
@@ -387,6 +391,7 @@ class OCI8Statement extends \PDOStatement implements \IteratorAggregate
                     }
 
                     if ($this->_returnLobs && is_object($value)) {
+                        /** @noinspection PhpUndefinedMethodInspection */
                         $object->$field = $value->load();
                     } else {
                         $object->$field = $value;
@@ -401,8 +406,10 @@ class OCI8Statement extends \PDOStatement implements \IteratorAggregate
 
     /**
      * {@inheritdoc}
+     *
+     * @throws ReflectionException
      */
-    public function fetchAll($fetchMode = null, $className = null, $arguments = null)
+    public function fetchAll($fetchMode = null, $className = null, array $arguments = null)
     {
         $fetchArgument = $className;
         $this->setFetchMode($fetchMode, $fetchArgument, $arguments);
@@ -466,7 +473,7 @@ class OCI8Statement extends \PDOStatement implements \IteratorAggregate
      * @throws Oci8Exception
      * @return bool TRUE on success or FALSE on failure.
      */
-    public function setFetchMode($fetchMode, $param = null, $arguments = [])
+    public function setFetchMode($fetchMode, $param = null, array $arguments = [])
     {
         $this->_defaultFetchMode = $fetchMode;
 

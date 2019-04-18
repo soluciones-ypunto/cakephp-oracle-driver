@@ -80,7 +80,7 @@ $cache = [
     ],
 ];
 
-Cake\Cache\Cache::config($cache);
+Cake\Cache\Cache::setConfig($cache);
 Cake\Core\Configure::write('Session', [
     'defaults' => 'php'
 ]);

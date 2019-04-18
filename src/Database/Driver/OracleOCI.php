@@ -11,11 +11,12 @@
 
 namespace CakeDC\OracleDriver\Database\Driver;
 
+use Cake\Database\StatementInterface;
 use CakeDC\OracleDriver\Database\OCI8\OCI8Connection;
 use CakeDC\OracleDriver\Database\Statement\Method\MethodOracleStatement;
 use CakeDC\OracleDriver\Database\Statement\Method\MethodPDOStatement;
-use Cake\Database\Driver;
 use PDO;
+use PDOException;
 
 class OracleOCI extends OracleBase
 {
@@ -26,7 +27,7 @@ class OracleOCI extends OracleBase
     protected function _connect($dsn, array $config)
     {
         $connection = new OCI8Connection($dsn, $config['username'], $config['password'], $config['flags']);
-        $this->connection($connection);
+        $this->setConnection($connection);
         return true;
 
     }
@@ -48,8 +49,10 @@ class OracleOCI extends OracleBase
             $connected = false;
         } else {
             try {
+                /** @noinspection SqlDialectInspection */
+                /** @noinspection SqlNoDataSourceInspection */
                 $connected = $this->_connection->query('SELECT 1 FROM DUAL');
-            } catch (\PDOException $e) {
+            } catch (PDOException $e) {
                 $connected = false;
             }
         }
@@ -64,6 +67,7 @@ class OracleOCI extends OracleBase
     {
         $sequenceName = 'seq_' . strtolower($table);
         $this->connect();
+        /** @noinspection SqlNoDataSourceInspection */
         $statement = $this->_connection->query("SELECT {$sequenceName}.CURRVAL FROM DUAL");
         $result = $statement->fetch(PDO::FETCH_NUM);
         return $result[0];
@@ -74,7 +78,7 @@ class OracleOCI extends OracleBase
      *
      * @param string $queryString The PL/SQL to convert into a prepared statement.
      * @param array $options Statement options.
-     * @return \Cake\Database\StatementInterface
+     * @return StatementInterface
      */
     public function prepareMethod($queryString, $options = [])
     {
