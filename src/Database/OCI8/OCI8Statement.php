@@ -409,7 +409,7 @@ class OCI8Statement extends PDOStatement implements IteratorAggregate
      *
      * @throws ReflectionException
      */
-    public function fetchAll($fetchMode = null, $className = null, array $arguments = null)
+    public function fetchAll($fetchMode = null, $className = null, $arguments = [])
     {
         $fetchArgument = $className;
         $this->setFetchMode($fetchMode, $fetchArgument, $arguments);
